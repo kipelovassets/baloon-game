@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pop the baloon!!</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #87CEEB, #B0E0E6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+        .game-container {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(6px);
+            border-radius: 40px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            border: 2px solid rgba(255,255,255,0.5);
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            border-radius: 30px;
+            background: radial-gradient(circle at 20% 20%, #f0f8ff, #c0e0ff);
+            box-shadow: inset 0 -5px 15px rgba(0,20,30,0.3), 0 10px 20px rgba(0,0,0,0.2);
+            cursor: crosshair;
+            touch-action: none; /* предотвращает прокрутку при касании */
+        }
+        .panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+            padding: 0 15px;
+            color: #1e3c4f;
+            font-weight: bold;
+            text-shadow: 2px 2px 0 rgba(255,255,255,0.3);
+        }
+        .score {
+            background: #fef9e0;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 2rem;
+            line-height: 1;
+            box-shadow: inset 0 -3px 0 #c0a86a, 0 8px 0 #6b4f2e;
+            color: #3d2b13;
+            border: 2px solid #ebc47f;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        .reset-btn {
+            background: #ffb347;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 60px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2d1f0c;
+            box-shadow: 0 7px 0 #9f5e1f, 0 8px 12px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.08s ease;
+            border: 2px solid #ffe49e;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .reset-btn:active {
+            transform: translateY(7px);
+            box-shadow: 0 0 0 #9f5e1f, 0 5px 12px rgba(0,0,0,0.2);
+        }
+        .footer {
+            margin-top: 10px;
+            text-align: center;
+            color: #1e3c4f;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div class="panel">
+        <span class="score" id="scoreDisplay">0</span>
+        <button class="reset-btn" id="resetBtn">⟲ Restart</button>
+    </div>
+    <div class="footer">Press on baloons!</div>
+</div>
+
+<script>
+    (function() {
+        // --- Настройки игры ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreSpan = document.getElementById('scoreDisplay');
+
+        // Размеры canvas (фиксированные, не зависят от CSS)
+        const W = 800;
+        const H = 600;
+        canvas.width = W;
+        canvas.height = H;
+
+        // Массив шариков
+        let balloons = [];
+        let score = 0;
+
+        // Параметры шариков
+        const MIN_RADIUS = 18;
+        const MAX_RADIUS = 38;
+        const MIN_SPEED = 1.0;
+        const MAX_SPEED = 2.8;
+
+        // Load balloon images
+        const balloonImages = [
+            'shar.png', 'shar2.png', 'shar3.png', 'shar4.png', 'shar5.png', 'shar6.png', 'shar7.png'
+        ].map(src => {
+            const img = new Image();
+            img.src = src;
+            return img;
+        });
+
+        // ---- Добавление нового шарика ----
+        function addBalloon() {
+            const radius = 80; // Increased size for all balloons
+
+            // Randomly select an image
+            const image = balloonImages[Math.floor(Math.random() * balloonImages.length)];
+
+            // Position: random horizontally, near the bottom
+            const x = Math.random() * (W - 2 * radius) + radius;
+            const y = H - radius - 2;
+
+            // Vertical speed
+            const speed = Math.random() * (MAX_SPEED - MIN_SPEED) + MIN_SPEED;
+
+            balloons.push({
+                x, y,
+                radius,
+                image,
+                speed
+            });
+        }
+
+        // ---- Обновление позиций (движение вверх) ----
+        function updateBalloons() {
+            for (let i = balloons.length - 1; i >= 0; i--) {
+                const b = balloons[i];
+                // Двигаем вверх
+                b.y -= b.speed;
+
+                // Если шарик целиком улетел за верхнюю границу — удаляем
+                if (b.y + b.radius < 0) {
+                    balloons.splice(i, 1);
+                }
+            }
+        }
+
+        // ---- Отрисовка всех шариков ----
+        function drawBalloons() {
+            ctx.clearRect(0, 0, W, H);
+
+            // Draw background highlights
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.beginPath();
+            ctx.arc(120, 80, 150, 0, Math.PI * 2);
+            ctx.fill();
+
+            for (let b of balloons) {
+                // Draw the balloon image
+                ctx.drawImage(b.image, b.x - b.radius, b.y - b.radius, b.radius * 2, b.radius * 2);
+
+                // Draw the string
+                ctx.beginPath();
+                ctx.moveTo(b.x, b.y + b.radius);
+                ctx.lineTo(b.x, b.y + b.radius + 20);
+                ctx.strokeStyle = '#8B4513';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        // ---- Цикл анимации ----
+        function gameLoop() {
+            updateBalloons();
+            drawBalloons();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ---- Добавление шариков по таймеру (каждые 700 мс) ----
+        setInterval(addBalloon, 700);
+
+        // ---- Обработка клика (лопание шарика) ----
+        function handlePop(e) {
+            e.preventDefault(); // для touch
+
+            // Получаем координаты клика/касания относительно canvas
+            let clientX, clientY;
+            if (e.touches) {
+                // touch-событие
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;   // если canvas CSS сжимается/растягивается
+            const scaleY = canvas.height / rect.height;
+
+            const canvasX = (clientX - rect.left) * scaleX;
+            const canvasY = (clientY - rect.top) * scaleY;
+
+            // Идём по массиву с конца (чтобы первым найти самый верхний шарик)
+            for (let i = balloons.length - 1; i >= 0; i--) {
+                const b = balloons[i];
+                const dx = canvasX - b.x;
+                const dy = canvasY - b.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist <= b.radius) {
+                    // Лопаем этот шарик
+                    balloons.splice(i, 1);
+                    score++;
+                    scoreSpan.textContent = score;
+                    break; // лопаем только один (верхний) за клик
+                }
+            }
+        }
+
+        // Навешиваем обработчики мыши и касаний
+        canvas.addEventListener('mousedown', handlePop);       // используем mousedown для большей отзывчивости
+        canvas.addEventListener('touchstart', handlePop, { passive: false });
+        // Запрещаем контекстное меню на canvas (чтобы не мешало)
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // ---- Кнопка сброса ----
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            balloons = [];
+            score = 0;
+            scoreSpan.textContent = '0';
+        });
+
+        // ---- Старт игры ----
+        gameLoop();
+
+        // Небольшая начальная загрузка: пара шариков сразу для веселья
+        setTimeout(() => {
+            addBalloon();
+            addBalloon();
+            addBalloon();
+        }, 200);
+    })();
+</script>
+</body>
+</html>
