@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Pop the baloon!!</title>
+    <meta name="x-ogp-key" content="70a7be76-02d6-43de-9aa0-354ec19703a3" id="ogp-key-meta">
     <style>
         * {
             box-sizing: border-box;
@@ -104,8 +105,8 @@
         const scoreSpan = document.getElementById('scoreDisplay');
 
         // Размеры canvas (фиксированные, не зависят от CSS)
-        const W = 800;
-        const H = 600;
+        const W = 1280; // Updated width for 16:9 aspect ratio
+        const H = 720;  // Updated height for 16:9 aspect ratio
         canvas.width = W;
         canvas.height = H;
 
